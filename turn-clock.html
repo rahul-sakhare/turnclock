@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Turn Clock — Board Game Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2ebe0;
+    --ink: #1a1a1a;
+    --paper: #ebe2d4;
+    --rule: #1a1a1a;
+    --muted: #6b6258;
+    --active: #1a1a1a;
+    --active-text: #f2ebe0;
+    --accent: #c4391f;
+    --warn: #e53e1c;
+    --grid: rgba(26, 26, 26, 0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: 'Fraunces', Georgia, serif;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(16px, 3vw, 32px);
+    transition: background-color 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body.alarm {
+    background-color: var(--warn) !important;
+    background-image: none !important;
+    animation: shake 0.4s linear infinite;
+  }
+  body.alarm .panel,
+  body.alarm header,
+  body.alarm .hint {
+    color: #fff8f3 !important;
+  }
+  body.alarm .panel { border-color: #fff8f3 !important; }
+  body.alarm .controls input,
+  body.alarm .controls button {
+    border-color: #fff8f3 !important;
+    color: #fff8f3 !important;
+    background: transparent !important;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-2px, 1px); }
+    50% { transform: translate(2px, -1px); }
+    75% { transform: translate(-1px, 2px); }
+  }
+
+  @keyframes pulse-flash {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.35; }
+  }
+
+  body.alarm .clock-wrap { animation: pulse-flash 0.5s steps(2) infinite; }
+
+  header {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 14px;
+    border-bottom: 1.5px solid var(--rule);
+    margin-bottom: 28px;
+  }
+
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(22px, 4vw, 30px);
+    letter-spacing: -0.02em;
+    font-style: italic;
+  }
+  .brand .ampersand { color: var(--accent); font-style: italic; }
+
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .controls {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .field input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    width: 86px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1.5px solid var(--rule);
+    color: var(--ink);
+    border-radius: 0;
+    text-align: center;
+    transition: background 0.15s;
+  }
+  .field input:focus { outline: none; background: var(--paper); }
+
+  .controls button {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 10px 22px;
+    background: var(--ink);
+    color: var(--active-text);
+    border: 1.5px solid var(--rule);
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: transform 0.1s, background 0.15s;
+    align-self: flex-end;
+  }
+  .controls button.secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  .controls button:active { transform: translateY(1px); }
+
+  .clock-wrap {
+    position: relative;
+    width: min(90vw, 520px);
+    aspect-ratio: 1;
+  }
+
+  svg.clock {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+
+  .slice {
+    fill: var(--paper);
+    stroke: var(--rule);
+    stroke-width: 1.5;
+    cursor: pointer;
+    transition: fill 0.2s ease;
+  }
+  .slice:hover { fill: #e0d6c4; }
+  .slice.active {
+    fill: var(--active);
+  }
+
+  .slice-label {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 15px;
+    fill: var(--ink);
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  .slice-label.active { fill: var(--active-text); font-weight: 800; font-style: italic; }
+
+  .center-disc {
+    fill: var(--bg);
+    stroke: var(--rule);
+    stroke-width: 1.5;
+  }
+
+  .center-time {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: 22px;
+    fill: var(--ink);
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .center-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    text-anchor: middle;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .action-row button {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    background: transparent;
+    border: 1.5px solid var(--rule);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .action-row button:hover { background: var(--paper); }
+  .action-row button:active { transform: translateY(1px); }
+
+  .hint {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    max-width: 480px;
+    line-height: 1.45;
+  }
+
+  footer {
+    margin-top: auto;
+    padding-top: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+    animation: fadeIn 0.15s ease;
+  }
+  .modal-backdrop[hidden] { display: none; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--bg);
+    border: 1.5px solid var(--rule);
+    width: 100%;
+    max-width: 420px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+
+  .modal-head {
+    padding: 20px 22px 14px;
+    border-bottom: 1.5px solid var(--rule);
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .modal-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .modal-body {
+    padding: 16px 22px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .name-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .name-row .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    width: 28px;
+    flex-shrink: 0;
+  }
+  .name-row input {
+    flex: 1;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1.5px solid var(--rule);
+    color: var(--ink);
+    border-radius: 0;
+  }
+  .name-row input:focus { outline: none; background: var(--paper); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    padding: 14px 22px 20px;
+    border-top: 1.5px solid var(--rule);
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border: 1.5px solid var(--rule);
+    cursor: pointer;
+  }
+  .modal-btn.ghost { background: transparent; color: var(--ink); }
+  .modal-btn.primary { background: var(--ink); color: var(--active-text); }
+  .modal-btn:active { transform: translateY(1px); }
+
+  @media (max-width: 480px) {
+    header { flex-direction: column; gap: 6px; align-items: flex-start; }
+    .center-time { font-size: 19px; }
+    .slice-label { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">Turn <span class="ampersand">&amp;</span> Tide</div>
+    <div class="meta">No. 01 · Board Game Clock</div>
+  </header>
+
+  <div class="panel">
+    <div class="controls">
+      <div class="field">
+        <label for="players">Players</label>
+        <input id="players" type="number" min="2" max="12" value="4" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="minutes">Min / Turn</label>
+        <input id="minutes" type="number" min="0" step="0.5" value="2" inputmode="decimal">
+      </div>
+      <button id="setup">Set Up</button>
+    </div>
+
+    <div class="clock-wrap" id="clockWrap">
+      <svg class="clock" id="clock" viewBox="-110 -110 220 220" aria-label="Player turn clock"></svg>
+    </div>
+
+    <div class="action-row">
+      <button id="startPause">Start</button>
+      <button id="next">Next Player ›</button>
+      <button id="editNames">Edit Names</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <p class="hint">Tap a wedge when that player finishes early — the turn passes and the timer resets. The dial flashes red in the final ten seconds.</p>
+  </div>
+
+  <div class="modal-backdrop" id="modal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">Player Names</div>
+        <div class="modal-sub">Leave blank to keep defaults</div>
+      </div>
+      <div class="modal-body" id="namesList"></div>
+      <div class="modal-actions">
+        <button class="modal-btn ghost" id="namesCancel">Cancel</button>
+        <button class="modal-btn primary" id="namesSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Hold the line · No takebacks · Designed by Rahul Sakhare</footer>
+
+<script>
+(function() {
+  const svg = document.getElementById('clock');
+  const playersInput = document.getElementById('players');
+  const minutesInput = document.getElementById('minutes');
+  const setupBtn = document.getElementById('setup');
+  const startPauseBtn = document.getElementById('startPause');
+  const nextBtn = document.getElementById('next');
+  const resetBtn = document.getElementById('reset');
+  const editNamesBtn = document.getElementById('editNames');
+  const modal = document.getElementById('modal');
+  const namesList = document.getElementById('namesList');
+  const namesCancel = document.getElementById('namesCancel');
+  const namesSave = document.getElementById('namesSave');
+  const body = document.body;
+
+  let numPlayers = 4;
+  let turnSeconds = 120;
+  let activePlayer = 0;
+  let remaining = turnSeconds;
+  let running = false;
+  let intervalId = null;
+  let lastTick = null;
+  let playerNames = []; // entries: string or '' (use default)
+
+  function defaultName(i) { return `P${i + 1}`; }
+  function nameFor(i) {
+    const n = playerNames[i];
+    return (n && n.trim()) ? n.trim() : defaultName(i);
+  }
+  function resizeNames(n) {
+    while (playerNames.length < n) playerNames.push('');
+    if (playerNames.length > n) playerNames.length = n;
+  }
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.ceil(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function polar(cx, cy, r, angle) {
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+  }
+
+  function buildWheel() {
+    svg.innerHTML = '';
+    const R = 100;
+    const innerR = 38;
+    const n = numPlayers;
+    // start at top (-PI/2) and go clockwise
+    const start = -Math.PI / 2;
+    const step = (2 * Math.PI) / n;
+
+    // Compute a name-fit font size: longer names + narrower wedges => smaller text
+    const longestLen = Math.max(...Array.from({ length: n }, (_, i) => nameFor(i).length), 1);
+    const wedgeWidth = step * ((R + innerR) / 2); // approx arc length at label radius
+    // Heuristic: each char ~0.55 * fontSize wide. Allow 80% of wedgeWidth.
+    let labelFont = Math.min(15, Math.floor((wedgeWidth * 0.8) / (longestLen * 0.55)));
+    labelFont = Math.max(8, labelFont);
+
+    for (let i = 0; i < n; i++) {
+      const a0 = start + i * step;
+      const a1 = start + (i + 1) * step;
+      const p0 = polar(0, 0, R, a0);
+      const p1 = polar(0, 0, R, a1);
+      const largeArc = step > Math.PI ? 1 : 0;
+
+      const d = [
+        `M 0 0`,
+        `L ${p0.x.toFixed(3)} ${p0.y.toFixed(3)}`,
+        `A ${R} ${R} 0 ${largeArc} 1 ${p1.x.toFixed(3)} ${p1.y.toFixed(3)}`,
+        `Z`
+      ].join(' ');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('class', 'slice' + (i === activePlayer ? ' active' : ''));
+      path.setAttribute('data-i', i);
+      path.addEventListener('click', () => onSliceTap(i));
+      svg.appendChild(path);
+
+      // Label
+      const midAngle = a0 + step / 2;
+      const labelR = (R + innerR) / 2 + 2;
+      const lp = polar(0, 0, labelR, midAngle);
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', lp.x.toFixed(3));
+      text.setAttribute('y', lp.y.toFixed(3));
+      text.setAttribute('class', 'slice-label' + (i === activePlayer ? ' active' : ''));
+      text.setAttribute('style', `font-size: ${labelFont}px;`);
+      text.textContent = nameFor(i);
+      svg.appendChild(text);
+    }
+
+    // Center disc
+    const disc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    disc.setAttribute('cx', 0);
+    disc.setAttribute('cy', 0);
+    disc.setAttribute('r', innerR);
+    disc.setAttribute('class', 'center-disc');
+    svg.appendChild(disc);
+
+    const timeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    timeText.setAttribute('x', 0);
+    timeText.setAttribute('y', -6);
+    timeText.setAttribute('class', 'center-time');
+    timeText.setAttribute('id', 'centerTime');
+    timeText.textContent = fmt(remaining);
+    svg.appendChild(timeText);
+
+    const subText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    subText.setAttribute('x', 0);
+    subText.setAttribute('y', 14);
+    subText.setAttribute('class', 'center-sub');
+    subText.setAttribute('id', 'centerSub');
+    // Truncate long names in center sub
+    const subName = nameFor(activePlayer);
+    subText.textContent = subName.length > 12 ? subName.slice(0, 11) + '…' : subName;
+    svg.appendChild(subText);
+  }
+
+  function updateCenter() {
+    const t = document.getElementById('centerTime');
+    const s = document.getElementById('centerSub');
+    if (t) t.textContent = fmt(remaining);
+    if (s) {
+      const subName = nameFor(activePlayer);
+      s.textContent = subName.length > 12 ? subName.slice(0, 11) + '…' : subName;
+    }
+    if (remaining <= 10 && remaining > 0 && running) {
+      body.classList.add('alarm');
+    } else {
+      body.classList.remove('alarm');
+    }
+  }
+
+  function setActive(i) {
+    activePlayer = ((i % numPlayers) + numPlayers) % numPlayers;
+    remaining = turnSeconds;
+    body.classList.remove('alarm');
+    buildWheel();
+  }
+
+  function onSliceTap(i) {
+    // Tap = that player is done early -> advance to next
+    if (i === activePlayer) {
+      advance();
+    } else {
+      // Tapping a different player jumps to them
+      setActive(i);
+      if (!running) updateCenter();
+    }
+  }
+
+  function advance() {
+    setActive(activePlayer + 1);
+    if (!running) {
+      // auto-start after first advance? keep paused unless already running
+      updateCenter();
+    }
+  }
+
+  function tick() {
+    const now = performance.now();
+    const dt = (now - lastTick) / 1000;
+    lastTick = now;
+    remaining -= dt;
+    if (remaining <= 0) {
+      remaining = 0;
+      updateCenter();
+      // time's up: stop and stay on alarm visually briefly, then advance
+      stop();
+      body.classList.add('alarm');
+      setTimeout(() => {
+        body.classList.remove('alarm');
+        advance();
+      }, 1500);
+      return;
+    }
+    updateCenter();
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    lastTick = performance.now();
+    intervalId = setInterval(tick, 100);
+    startPauseBtn.textContent = 'Pause';
+  }
+
+  function stop() {
+    running = false;
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    startPauseBtn.textContent = 'Start';
+    body.classList.remove('alarm');
+  }
+
+  function reset() {
+    stop();
+    activePlayer = 0;
+    remaining = turnSeconds;
+    buildWheel();
+  }
+
+  function applySetup() {
+    const n = Math.max(2, Math.min(12, parseInt(playersInput.value, 10) || 4));
+    const mins = Math.max(0.1, parseFloat(minutesInput.value) || 2);
+    numPlayers = n;
+    turnSeconds = Math.round(mins * 60);
+    playersInput.value = n;
+    resizeNames(n);
+    reset();
+  }
+
+  function openNamesModal() {
+    namesList.innerHTML = '';
+    for (let i = 0; i < numPlayers; i++) {
+      const row = document.createElement('div');
+      row.className = 'name-row';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = `0${i + 1}`.slice(-2);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 20;
+      input.value = playerNames[i] || '';
+      input.placeholder = defaultName(i);
+      input.dataset.i = i;
+      row.appendChild(tag);
+      row.appendChild(input);
+      namesList.appendChild(row);
+    }
+    modal.hidden = false;
+    setTimeout(() => {
+      const first = namesList.querySelector('input');
+      if (first) first.focus();
+    }, 50);
+  }
+
+  function closeNamesModal() { modal.hidden = true; }
+
+  function saveNames() {
+    const inputs = namesList.querySelectorAll('input');
+    inputs.forEach(inp => {
+      const i = parseInt(inp.dataset.i, 10);
+      playerNames[i] = inp.value.trim();
+    });
+    closeNamesModal();
+    buildWheel();
+  }
+
+  setupBtn.addEventListener('click', applySetup);
+  playersInput.addEventListener('change', applySetup);
+  minutesInput.addEventListener('change', applySetup);
+
+  startPauseBtn.addEventListener('click', () => {
+    if (running) stop(); else start();
+  });
+  nextBtn.addEventListener('click', () => {
+    advance();
+  });
+  resetBtn.addEventListener('click', reset);
+  editNamesBtn.addEventListener('click', openNamesModal);
+  namesCancel.addEventListener('click', closeNamesModal);
+  namesSave.addEventListener('click', saveNames);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeNamesModal();
+  });
+
+  // Keyboard: space to start/pause, n for next, r for reset, esc closes modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) { closeNamesModal(); return; }
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') { e.preventDefault(); running ? stop() : start(); }
+    else if (e.key.toLowerCase() === 'n') advance();
+    else if (e.key.toLowerCase() === 'r') reset();
+  });
+
+  // Init
+  resizeNames(numPlayers);
+  buildWheel();
+})();
+</script>
+</body>
+</html>
