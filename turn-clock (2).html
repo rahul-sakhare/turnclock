@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Board Game Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2ebe0;
+    --ink: #1a1a1a;
+    --paper: #ebe2d4;
+    --rule: #1a1a1a;
+    --muted: #6b6258;
+    --active: #1a1a1a;
+    --active-text: #f2ebe0;
+    --accent: #c4391f;
+    --warn: #e53e1c;
+    --grid: rgba(26, 26, 26, 0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: 'Fraunces', Georgia, serif;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--theme-tint, transparent), var(--theme-tint, transparent)),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 100% 100%, 32px 32px, 32px 32px;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(16px, 3vw, 32px);
+    transition: background-color 0.3s ease, background-image 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    isolation: isolate;
+  }
+
+  body.alarm {
+    background-color: var(--warn) !important;
+    background-image: none !important;
+    animation: shake 0.4s linear infinite;
+  }
+  body.alarm .panel,
+  body.alarm header,
+  body.alarm .hint {
+    color: #fff8f3 !important;
+  }
+  body.alarm .panel { border-color: #fff8f3 !important; }
+  body.alarm .controls input,
+  body.alarm .controls button {
+    border-color: #fff8f3 !important;
+    color: #fff8f3 !important;
+    background: transparent !important;
+  }
+
+  /* Expired: time is up. Solid red, NO flash, NO shake. */
+  body.expired {
+    background-color: var(--warn) !important;
+    background-image: none !important;
+  }
+  body.expired .panel,
+  body.expired header,
+  body.expired .hint {
+    color: #fff8f3 !important;
+  }
+  body.expired .panel { border-color: #fff8f3 !important; }
+  body.expired .controls input,
+  body.expired .controls button {
+    border-color: #fff8f3 !important;
+    color: #fff8f3 !important;
+    background: transparent !important;
+  }
+  body.expired .totals-head,
+  body.expired .totals-row,
+  body.expired .totals-name,
+  body.expired .totals-time {
+    color: #fff8f3 !important;
+    border-color: #fff8f3 !important;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-2px, 1px); }
+    50% { transform: translate(2px, -1px); }
+    75% { transform: translate(-1px, 2px); }
+  }
+
+  @keyframes pulse-flash {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.35; }
+  }
+
+  body.alarm .clock-wrap { animation: pulse-flash 0.5s steps(2) infinite; }
+
+  header {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 14px;
+    border-bottom: 1.5px solid var(--rule);
+    margin-bottom: 28px;
+  }
+
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(22px, 4vw, 30px);
+    letter-spacing: -0.02em;
+    font-style: italic;
+  }
+  .brand .ampersand { color: var(--accent); font-style: italic; }
+
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .game-layout {
+    width: 100%;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .controls {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .field input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    width: 86px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1.5px solid var(--rule);
+    color: var(--ink);
+    border-radius: 0;
+    text-align: center;
+    transition: background 0.15s;
+  }
+  .field input:focus { outline: none; background: var(--paper); }
+
+  .controls button {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 10px 22px;
+    background: var(--ink);
+    color: var(--active-text);
+    border: 1.5px solid var(--rule);
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: transform 0.1s, background 0.15s;
+    align-self: flex-end;
+  }
+  .controls button.secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  .controls button:active { transform: translateY(1px); }
+
+  .clock-wrap {
+    position: relative;
+    flex: 0 0 auto;
+    width: min(85vw, 460px);
+    aspect-ratio: 1;
+  }
+
+  svg.clock {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+
+  .slice {
+    fill: var(--paper);
+    stroke: var(--rule);
+    stroke-width: 1.5;
+    cursor: pointer;
+    transition: fill 0.2s ease;
+  }
+  .slice:hover { fill: #e0d6c4; }
+  .slice.active {
+    fill: var(--active);
+  }
+
+  .slice-label {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 15px;
+    fill: var(--ink);
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  .slice-label.active { fill: var(--active-text); font-weight: 800; font-style: italic; }
+
+
+  .center-disc {
+    fill: var(--bg);
+    stroke: var(--rule);
+    stroke-width: 1.5;
+  }
+
+  .center-time {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: 22px;
+    fill: var(--ink);
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .center-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    text-anchor: middle;
+  }
+
+  .totals {
+    flex: 1 1 220px;
+    min-width: 220px;
+    max-width: 320px;
+    padding: 18px 20px;
+    border: 1.5px solid var(--rule);
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .totals-head {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .totals-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .totals-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 8px;
+    transition: background 0.15s;
+  }
+  .totals-row.active {
+    background: var(--ink);
+    color: var(--active-text);
+  }
+  .totals-name {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 1 auto;
+  }
+  .totals-row.active .totals-name { font-style: italic; font-weight: 800; }
+  .totals-leader {
+    flex: 1 1 auto;
+    border-bottom: 1px dotted currentColor;
+    opacity: 0.4;
+    transform: translateY(-3px);
+  }
+  .totals-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+  }
+  .action-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .action-row button {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    background: transparent;
+    border: 1.5px solid var(--rule);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .action-row button:hover { background: var(--paper); }
+  .action-row button:active { transform: translateY(1px); }
+
+  .hint {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    max-width: 480px;
+    line-height: 1.45;
+  }
+
+  footer {
+    margin-top: auto;
+    padding-top: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+    animation: fadeIn 0.15s ease;
+  }
+  .modal-backdrop[hidden] { display: none; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--bg);
+    border: 1.5px solid var(--rule);
+    width: 100%;
+    max-width: 420px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+
+  .modal-head {
+    padding: 20px 22px 14px;
+    border-bottom: 1.5px solid var(--rule);
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .modal-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .modal-body {
+    padding: 16px 22px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .name-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed rgba(26, 26, 26, 0.25);
+  }
+  .name-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .name-row-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .name-row .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    width: 28px;
+    flex-shrink: 0;
+  }
+  .name-row input {
+    flex: 1;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1.5px solid var(--rule);
+    color: var(--ink);
+    border-radius: 0;
+  }
+  .name-row input:focus { outline: none; background: var(--paper); }
+
+  .color-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding-left: 40px;
+  }
+  .color-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px 5px 6px;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: background 0.15s, color 0.15s;
+  }
+  .color-chip .swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(26, 26, 26, 0.35);
+    flex-shrink: 0;
+  }
+  .color-chip:hover { background: var(--paper); }
+  .color-chip.selected {
+    background: var(--ink);
+    color: var(--active-text);
+    border-color: var(--ink);
+  }
+  .color-chip.selected .swatch { border-color: var(--active-text); }
+  .color-chip.clear {
+    font-style: italic;
+    color: var(--muted);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    padding: 14px 22px 20px;
+    border-top: 1.5px solid var(--rule);
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border: 1.5px solid var(--rule);
+    cursor: pointer;
+  }
+  .modal-btn.ghost { background: transparent; color: var(--ink); }
+  .modal-btn.primary { background: var(--ink); color: var(--active-text); }
+  .modal-btn.danger { background: var(--warn); color: #fff8f3; border-color: var(--warn); }
+  .modal-small { max-width: 360px; }
+  .confirm-body {
+    padding: 18px 22px;
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .confirm-body p { margin: 0; }
+  .modal-btn:active { transform: translateY(1px); }
+
+  @media (max-width: 720px) {
+    .game-layout { flex-direction: column; }
+    .totals { max-width: 460px; width: 100%; flex: 1 1 auto; }
+    .clock-wrap { width: min(90vw, 460px); }
+  }
+
+  @media (max-width: 480px) {
+    header { flex-direction: column; gap: 6px; align-items: flex-start; }
+    .center-time { font-size: 19px; }
+    .slice-label { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">Board Game <span class="ampersand">Clock</span></div>
+  </header>
+
+  <div class="panel">
+    <div class="controls">
+      <div class="field">
+        <label for="players">Players</label>
+        <input id="players" type="number" min="2" max="12" value="4" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="minutes">Min / Turn</label>
+        <input id="minutes" type="number" min="0" step="0.5" value="2" inputmode="decimal">
+      </div>
+      <button id="setup">Set Up</button>
+    </div>
+
+    <div class="game-layout">
+      <div class="clock-wrap" id="clockWrap">
+        <svg class="clock" id="clock" viewBox="-120 -120 240 240" aria-label="Player turn clock"></svg>
+      </div>
+
+      <aside class="totals" aria-label="Cumulative time per player">
+        <div class="totals-head">
+          <span>Cumulative</span>
+          <span>Time</span>
+        </div>
+        <ul class="totals-list" id="totalsList"></ul>
+      </aside>
+    </div>
+
+    <div class="action-row">
+      <button id="startPause">Start</button>
+      <button id="next">Next Player ›</button>
+      <button id="editNames">Players</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <p class="hint">Tap a wedge when that player finishes early — the turn passes and the timer resets. The dial flashes red in the final ten seconds, then turns solid red and counts into negative once time is up.</p>
+  </div>
+
+  <div class="modal-backdrop" id="modal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">Players &amp; Colors</div>
+        <div class="modal-sub">Name your players — pick a calm color</div>
+      </div>
+      <div class="modal-body" id="namesList"></div>
+      <div class="modal-actions">
+        <button class="modal-btn ghost" id="namesCancel">Cancel</button>
+        <button class="modal-btn primary" id="namesSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="confirmModal" hidden>
+    <div class="modal modal-small">
+      <div class="modal-head">
+        <div class="modal-title">Reset the game?</div>
+        <div class="modal-sub">This cannot be undone</div>
+      </div>
+      <div class="confirm-body">
+        <p>All cumulative times will be wiped and play will return to the first player.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn ghost" id="confirmCancel">Cancel</button>
+        <button class="modal-btn danger" id="confirmReset">Yes, Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Co-Creators: Justin Mahlberg, Cole Nellis and Rahul Sakhare.</footer>
+
+<script>
+(function() {
+  const svg = document.getElementById('clock');
+  const playersInput = document.getElementById('players');
+  const minutesInput = document.getElementById('minutes');
+  const setupBtn = document.getElementById('setup');
+  const startPauseBtn = document.getElementById('startPause');
+  const nextBtn = document.getElementById('next');
+  const resetBtn = document.getElementById('reset');
+  const editNamesBtn = document.getElementById('editNames');
+  const modal = document.getElementById('modal');
+  const namesList = document.getElementById('namesList');
+  const namesCancel = document.getElementById('namesCancel');
+  const namesSave = document.getElementById('namesSave');
+  const totalsList = document.getElementById('totalsList');
+  const confirmModal = document.getElementById('confirmModal');
+  const confirmCancel = document.getElementById('confirmCancel');
+  const confirmReset = document.getElementById('confirmReset');
+  const body = document.body;
+
+  // Calm, colorblind-friendly palette (Wong/Tol-inspired, muted)
+  // Names are evocative rather than literal so the chips read pleasantly.
+  const COLORS = [
+    { id: 'slate', name: 'Slate', hex: '#5B7FA6' },
+    { id: 'teal',  name: 'Teal',  hex: '#4D9B92' },
+    { id: 'sage',  name: 'Sage',  hex: '#6F9866' },
+    { id: 'moss',  name: 'Moss',  hex: '#6B7D4F' },
+    { id: 'sand',  name: 'Sand',  hex: '#B89856' },
+    { id: 'clay',  name: 'Clay',  hex: '#C47B5A' },
+    { id: 'rose',  name: 'Rose',  hex: '#B86878' },
+    { id: 'plum',  name: 'Plum',  hex: '#8E5F7D' },
+    { id: 'mauve', name: 'Mauve', hex: '#8A6FA0' },
+    { id: 'stone', name: 'Stone', hex: '#7D7770' }
+  ];
+  const COLOR_BY_ID = Object.fromEntries(COLORS.map(c => [c.id, c]));
+
+  let numPlayers = 4;
+  let turnSeconds = 120;
+  let activePlayer = 0;
+  let remaining = turnSeconds;
+  let running = false;
+  let intervalId = null;
+  let lastTick = null;
+  let playerNames = []; // entries: string or '' (use default)
+  let playerColors = []; // entries: color id string or '' (none)
+  let playerTotals = []; // cumulative seconds per player
+  let expired = false;
+
+  function defaultName(i) { return `P${i + 1}`; }
+  function nameFor(i) {
+    const n = playerNames[i];
+    return (n && n.trim()) ? n.trim() : defaultName(i);
+  }
+  function colorFor(i) {
+    const id = playerColors[i];
+    return id ? COLOR_BY_ID[id] : null;
+  }
+  function resizeNames(n) {
+    while (playerNames.length < n) playerNames.push('');
+    if (playerNames.length > n) playerNames.length = n;
+    while (playerColors.length < n) playerColors.push('');
+    if (playerColors.length > n) playerColors.length = n;
+    while (playerTotals.length < n) playerTotals.push(0);
+    if (playerTotals.length > n) playerTotals.length = n;
+  }
+
+  // Hex (#rrggbb) -> rgba string
+  function hexToRgba(hex, alpha) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function applyPageTheme() {
+    const c = colorFor(activePlayer);
+    if (c && !expired && !body.classList.contains('alarm')) {
+      body.style.setProperty('--theme-tint', hexToRgba(c.hex, 0.18));
+    } else {
+      body.style.setProperty('--theme-tint', 'transparent');
+    }
+  }
+
+  function fmt(sec) {
+    if (sec >= 0) {
+      sec = Math.ceil(sec);
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    } else {
+      const abs = Math.floor(Math.abs(sec));
+      const m = Math.floor(abs / 60);
+      const s = abs % 60;
+      return `-${m}:${String(s).padStart(2, '0')}`;
+    }
+  }
+
+  function fmtTotal(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function polar(cx, cy, r, angle) {
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+  }
+
+  function buildWheel() {
+    svg.innerHTML = '';
+    const R = 100;
+    const innerR = 38;
+    const explode = 8; // active slice offset outward
+    const activeBoost = 10; // active slice gets larger outer radius
+    const n = numPlayers;
+    const start = -Math.PI / 2;
+    const step = (2 * Math.PI) / n;
+
+    // Label font heuristic: base size for inactive, larger for active
+    const longestLen = Math.max(...Array.from({ length: n }, (_, i) => nameFor(i).length), 1);
+    const wedgeWidth = step * ((R + innerR) / 2);
+    let labelFont = Math.min(13, Math.floor((wedgeWidth * 0.8) / (longestLen * 0.55)));
+    labelFont = Math.max(8, labelFont);
+    // Active label is noticeably larger
+    const activeFont = Math.min(22, Math.max(labelFont + 5, 14));
+
+    // Draw inactive slices first, active last so it overlays cleanly
+    const drawOrder = [];
+    for (let i = 0; i < n; i++) if (i !== activePlayer) drawOrder.push(i);
+    drawOrder.push(activePlayer);
+
+    for (const i of drawOrder) {
+      const a0 = start + i * step;
+      const a1 = start + (i + 1) * step;
+      const isActive = (i === activePlayer);
+      const bisect = a0 + step / 2;
+      const cx = isActive ? explode * Math.cos(bisect) : 0;
+      const cy = isActive ? explode * Math.sin(bisect) : 0;
+      const sliceR = isActive ? R + activeBoost : R;
+      const p0 = polar(cx, cy, sliceR, a0);
+      const p1 = polar(cx, cy, sliceR, a1);
+      const largeArc = step > Math.PI ? 1 : 0;
+
+      const d = [
+        `M ${cx.toFixed(3)} ${cy.toFixed(3)}`,
+        `L ${p0.x.toFixed(3)} ${p0.y.toFixed(3)}`,
+        `A ${sliceR} ${sliceR} 0 ${largeArc} 1 ${p1.x.toFixed(3)} ${p1.y.toFixed(3)}`,
+        `Z`
+      ].join(' ');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('class', 'slice' + (isActive ? ' active' : ''));
+      path.setAttribute('data-i', i);
+
+      // Color the wedge if the player has a color assigned.
+      // Inactive: tinted (low opacity). Active: solid color.
+      const playerColor = colorFor(i);
+      if (playerColor) {
+        if (isActive) {
+          path.setAttribute('style', `fill: ${playerColor.hex};`);
+        } else {
+          path.setAttribute('style', `fill: ${playerColor.hex}; fill-opacity: 0.32;`);
+        }
+      }
+
+      path.addEventListener('click', () => onSliceTap(i));
+      svg.appendChild(path);
+
+      // Label position: pushed outward more for active slice
+      const labelR = isActive ? (sliceR + innerR) / 2 + 4 : (R + innerR) / 2 + 2;
+      const lp = polar(cx, cy, labelR, bisect);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', lp.x.toFixed(3));
+      text.setAttribute('y', lp.y.toFixed(3));
+      text.setAttribute('class', 'slice-label' + (isActive ? ' active' : ''));
+      const useFont = isActive ? activeFont : labelFont;
+      text.setAttribute('style', `font-size: ${useFont}px;`);
+      text.textContent = nameFor(i);
+      svg.appendChild(text);
+    }
+
+    // Center disc
+    const disc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    disc.setAttribute('cx', 0);
+    disc.setAttribute('cy', 0);
+    disc.setAttribute('r', innerR);
+    disc.setAttribute('class', 'center-disc');
+    svg.appendChild(disc);
+
+    const timeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    timeText.setAttribute('x', 0);
+    timeText.setAttribute('y', -6);
+    timeText.setAttribute('class', 'center-time');
+    timeText.setAttribute('id', 'centerTime');
+    timeText.textContent = fmt(remaining);
+    svg.appendChild(timeText);
+
+    const subText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    subText.setAttribute('x', 0);
+    subText.setAttribute('y', 14);
+    subText.setAttribute('class', 'center-sub');
+    subText.setAttribute('id', 'centerSub');
+    const subName = nameFor(activePlayer);
+    subText.textContent = subName.length > 12 ? subName.slice(0, 11) + '…' : subName;
+    svg.appendChild(subText);
+
+    renderTotals();
+  }
+
+  function renderTotals() {
+    totalsList.innerHTML = '';
+    for (let i = 0; i < numPlayers; i++) {
+      const li = document.createElement('li');
+      li.className = 'totals-row' + (i === activePlayer ? ' active' : '');
+      const name = document.createElement('span');
+      name.className = 'totals-name';
+      name.textContent = nameFor(i);
+      const leader = document.createElement('span');
+      leader.className = 'totals-leader';
+      const time = document.createElement('span');
+      time.className = 'totals-time';
+      time.textContent = fmtTotal(playerTotals[i] || 0);
+      li.appendChild(name);
+      li.appendChild(leader);
+      li.appendChild(time);
+      totalsList.appendChild(li);
+    }
+  }
+
+  function updateTotalsTime() {
+    // Update only the time spans, cheap path called every tick
+    const rows = totalsList.querySelectorAll('.totals-row .totals-time');
+    rows.forEach((el, i) => {
+      el.textContent = fmtTotal(playerTotals[i] || 0);
+    });
+  }
+
+  function updateCenter() {
+    const t = document.getElementById('centerTime');
+    const s = document.getElementById('centerSub');
+    if (t) t.textContent = fmt(remaining);
+    if (s) {
+      const subName = nameFor(activePlayer);
+      s.textContent = subName.length > 12 ? subName.slice(0, 11) + '…' : subName;
+    }
+    // State machine:
+    //   remaining > 10: normal
+    //   10 >= remaining > 0 (running): alarm (flashing red)
+    //   remaining <= 0: expired (solid red, no flash, no auto-advance)
+    if (remaining <= 0) {
+      expired = true;
+      body.classList.remove('alarm');
+      body.classList.add('expired');
+    } else if (remaining <= 10 && running) {
+      body.classList.add('alarm');
+      body.classList.remove('expired');
+    } else {
+      body.classList.remove('alarm');
+      body.classList.remove('expired');
+    }
+    applyPageTheme();
+  }
+
+  function setActive(i) {
+    activePlayer = ((i % numPlayers) + numPlayers) % numPlayers;
+    remaining = turnSeconds;
+    expired = false;
+    body.classList.remove('alarm');
+    body.classList.remove('expired');
+    buildWheel();
+    applyPageTheme();
+  }
+
+  function onSliceTap(i) {
+    // Tap = that player is done early -> advance to next
+    if (i === activePlayer) {
+      advance();
+    } else {
+      // Tapping a different player jumps to them
+      setActive(i);
+      if (!running) updateCenter();
+    }
+  }
+
+  function advance() {
+    setActive(activePlayer + 1);
+    if (!running) {
+      updateCenter();
+    }
+  }
+
+  function tick() {
+    const now = performance.now();
+    const dt = (now - lastTick) / 1000;
+    lastTick = now;
+    // Cumulative time always credits the current player
+    playerTotals[activePlayer] = (playerTotals[activePlayer] || 0) + dt;
+    remaining -= dt;
+    updateCenter();
+    updateTotalsTime();
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    lastTick = performance.now();
+    intervalId = setInterval(tick, 100);
+    startPauseBtn.textContent = 'Pause';
+    updateCenter();
+  }
+
+  function stop() {
+    running = false;
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    startPauseBtn.textContent = 'Start';
+    // Don't clear expired state — solid red persists until reset or advance
+    if (!expired) body.classList.remove('alarm');
+    applyPageTheme();
+  }
+
+  function reset() {
+    stop();
+    activePlayer = 0;
+    remaining = turnSeconds;
+    expired = false;
+    body.classList.remove('alarm');
+    body.classList.remove('expired');
+    for (let i = 0; i < playerTotals.length; i++) playerTotals[i] = 0;
+    buildWheel();
+    applyPageTheme();
+  }
+
+  function applySetup() {
+    const n = Math.max(2, Math.min(12, parseInt(playersInput.value, 10) || 4));
+    const mins = Math.max(0.1, parseFloat(minutesInput.value) || 2);
+    numPlayers = n;
+    turnSeconds = Math.round(mins * 60);
+    playersInput.value = n;
+    resizeNames(n);
+    reset();
+  }
+
+  let modalDraftColors = []; // staging area while modal open
+
+  function openNamesModal() {
+    namesList.innerHTML = '';
+    modalDraftColors = playerColors.slice();
+    for (let i = 0; i < numPlayers; i++) {
+      const row = document.createElement('div');
+      row.className = 'name-row';
+
+      // Top: tag + input
+      const top = document.createElement('div');
+      top.className = 'name-row-top';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = `0${i + 1}`.slice(-2);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 20;
+      input.value = playerNames[i] || '';
+      input.placeholder = defaultName(i);
+      input.dataset.i = i;
+      top.appendChild(tag);
+      top.appendChild(input);
+      row.appendChild(top);
+
+      // Color picker
+      const picker = document.createElement('div');
+      picker.className = 'color-picker';
+
+      // None / clear chip
+      const noneChip = document.createElement('button');
+      noneChip.type = 'button';
+      noneChip.className = 'color-chip clear' + (!modalDraftColors[i] ? ' selected' : '');
+      noneChip.dataset.player = i;
+      noneChip.dataset.color = '';
+      noneChip.textContent = 'None';
+      noneChip.addEventListener('click', () => selectColor(i, ''));
+      picker.appendChild(noneChip);
+
+      COLORS.forEach(c => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'color-chip' + (modalDraftColors[i] === c.id ? ' selected' : '');
+        chip.dataset.player = i;
+        chip.dataset.color = c.id;
+        chip.title = c.name;
+        const swatch = document.createElement('span');
+        swatch.className = 'swatch';
+        swatch.style.background = c.hex;
+        const lab = document.createElement('span');
+        lab.textContent = c.name;
+        chip.appendChild(swatch);
+        chip.appendChild(lab);
+        chip.addEventListener('click', () => selectColor(i, c.id));
+        picker.appendChild(chip);
+      });
+
+      row.appendChild(picker);
+      namesList.appendChild(row);
+    }
+    modal.hidden = false;
+    setTimeout(() => {
+      const first = namesList.querySelector('input');
+      if (first) first.focus();
+    }, 50);
+  }
+
+  function selectColor(playerIdx, colorId) {
+    modalDraftColors[playerIdx] = colorId;
+    // Update only chips in this player's picker
+    const chips = namesList.querySelectorAll(`.color-chip[data-player="${playerIdx}"]`);
+    chips.forEach(c => {
+      if (c.dataset.color === colorId) c.classList.add('selected');
+      else c.classList.remove('selected');
+    });
+  }
+
+  function closeNamesModal() { modal.hidden = true; }
+
+  function saveNames() {
+    const inputs = namesList.querySelectorAll('input');
+    inputs.forEach(inp => {
+      const i = parseInt(inp.dataset.i, 10);
+      playerNames[i] = inp.value.trim();
+    });
+    playerColors = modalDraftColors.slice();
+    closeNamesModal();
+    buildWheel();
+    applyPageTheme();
+  }
+
+  function openConfirmReset() { confirmModal.hidden = false; }
+  function closeConfirmReset() { confirmModal.hidden = true; }
+  function requestReset() {
+    // Skip the dialog if there's nothing to lose (everything already at zero & on player 1)
+    const anyTime = playerTotals.some(t => t > 0.5);
+    if (!anyTime && activePlayer === 0 && !running && !expired) {
+      reset();
+    } else {
+      openConfirmReset();
+    }
+  }
+
+  setupBtn.addEventListener('click', applySetup);
+  playersInput.addEventListener('change', applySetup);
+  minutesInput.addEventListener('change', applySetup);
+
+  startPauseBtn.addEventListener('click', () => {
+    if (running) stop(); else start();
+  });
+  nextBtn.addEventListener('click', () => {
+    advance();
+  });
+  resetBtn.addEventListener('click', requestReset);
+  editNamesBtn.addEventListener('click', openNamesModal);
+  namesCancel.addEventListener('click', closeNamesModal);
+  namesSave.addEventListener('click', saveNames);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeNamesModal();
+  });
+  confirmCancel.addEventListener('click', closeConfirmReset);
+  confirmReset.addEventListener('click', () => {
+    closeConfirmReset();
+    reset();
+  });
+  confirmModal.addEventListener('click', (e) => {
+    if (e.target === confirmModal) closeConfirmReset();
+  });
+
+  // Keyboard: space to start/pause, n for next, r for reset, esc closes modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (!modal.hidden) { closeNamesModal(); return; }
+      if (!confirmModal.hidden) { closeConfirmReset(); return; }
+    }
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') { e.preventDefault(); running ? stop() : start(); }
+    else if (e.key.toLowerCase() === 'n') advance();
+    else if (e.key.toLowerCase() === 'r') requestReset();
+  });
+
+  // Init
+  resizeNames(numPlayers);
+  buildWheel();
+  applyPageTheme();
+})();
+</script>
+</body>
+</html>
