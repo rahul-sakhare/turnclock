@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Board Game Clock</title>
+<title>Turn Clock — designed for Board Game enthusiasts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f2ebe0;
@@ -58,7 +58,7 @@
   }
   body.alarm .panel,
   body.alarm header,
-  body.alarm .hint {
+  body.alarm .guide-list li {
     color: #fff8f3 !important;
   }
   body.alarm .panel { border-color: #fff8f3 !important; }
@@ -76,7 +76,7 @@
   }
   body.expired .panel,
   body.expired header,
-  body.expired .hint {
+  body.expired .guide-list li {
     color: #fff8f3 !important;
   }
   body.expired .panel { border-color: #fff8f3 !important; }
@@ -108,6 +108,19 @@
 
   body.alarm .clock-wrap { animation: pulse-flash 0.5s steps(2) infinite; }
 
+  /* Turn change: gentle blue pulse for the first 5 seconds of a new turn */
+  body.turnflash {
+    background-color: #b8cddd !important;
+    background-image: none !important;
+  }
+  body.turnflash .clock-wrap {
+    animation: turn-pulse 1s ease-in-out infinite;
+  }
+  @keyframes turn-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
   header {
     width: 100%;
     max-width: 900px;
@@ -123,10 +136,19 @@
     font-family: 'Fraunces', serif;
     font-weight: 800;
     font-size: clamp(22px, 4vw, 30px);
-    letter-spacing: -0.02em;
-    font-style: italic;
+    letter-spacing: 0.04em;
+    font-style: normal;
+    text-transform: uppercase;
   }
-  .brand .ampersand { color: var(--accent); font-style: italic; }
+  .brand .accent-word { color: var(--accent); }
+  .brand-tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: none;
+    font-weight: 400;
+  }
 
   .meta {
     font-family: 'JetBrains Mono', monospace;
@@ -191,7 +213,7 @@
 
   .controls button {
     font-family: 'Fraunces', serif;
-    font-style: italic;
+    font-style: normal;
     font-weight: 600;
     font-size: 15px;
     padding: 10px 22px;
@@ -240,7 +262,7 @@
   }
   #pickStarter {
     font-family: 'Fraunces', serif;
-    font-style: italic;
+    font-style: normal;
     font-weight: 700;
     font-size: 15px;
     padding: 6px 14px;
@@ -315,9 +337,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-style: italic;
+    font-family: 'Space Grotesk', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+    font-style: normal;
     font-size: 16px;
     letter-spacing: -0.01em;
     gap: 8px;
@@ -394,15 +416,16 @@
   }
 
   .slice-label {
-    font-family: 'Fraunces', serif;
+    font-family: 'Space Grotesk', -apple-system, 'Segoe UI', Roboto, sans-serif;
     font-weight: 600;
     font-size: 15px;
     fill: var(--ink);
     pointer-events: none;
     text-anchor: middle;
     dominant-baseline: middle;
+    letter-spacing: 0.01em;
   }
-  .slice-label.active { fill: var(--active-text); font-weight: 800; font-style: italic; }
+  .slice-label.active { fill: var(--active-text); font-weight: 700; }
 
 
   .center-disc {
@@ -412,20 +435,21 @@
   }
 
   .center-time {
-    font-family: 'Fraunces', serif;
-    font-weight: 800;
-    font-size: 22px;
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    font-weight: 600;
+    font-size: 25px;
     fill: var(--ink);
     text-anchor: middle;
     dominant-baseline: central;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 
   .center-sub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.2em;
+    font-family: 'Space Grotesk', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     fill: var(--muted);
     text-anchor: middle;
@@ -472,15 +496,15 @@
     color: var(--active-text);
   }
   .totals-name {
-    font-family: 'Fraunces', serif;
-    font-size: 15px;
+    font-family: 'Space Grotesk', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 0 1 auto;
   }
-  .totals-row.active .totals-name { font-style: italic; font-weight: 800; }
+  .totals-row.active .totals-name { font-weight: 700; }
   .totals-leader {
     flex: 1 1 auto;
     border-bottom: 1px dotted currentColor;
@@ -493,6 +517,27 @@
     font-variant-numeric: tabular-nums;
     flex: 0 0 auto;
   }
+  .totals-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+    min-width: 34px;
+    text-align: right;
+    opacity: 0.65;
+  }
+  .totals-row.active .totals-pct { opacity: 0.85; }
+  .totals-grand {
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1.5px solid var(--rule);
+  }
+  .totals-grand .totals-name {
+    font-style: normal;
+    font-weight: 800;
+  }
+  .totals-grand .totals-time { font-weight: 600; }
+  body.expired .totals-grand { border-color: #fff8f3 !important; }
   .action-row {
     display: flex;
     gap: 10px;
@@ -515,14 +560,46 @@
   .action-row button:hover { background: var(--paper); }
   .action-row button:active { transform: translateY(1px); }
 
-  .hint {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 14px;
+  .guide {
+    width: 100%;
+    max-width: 640px;
+    border: 1.5px solid var(--rule);
+    background: var(--paper);
+    padding: 16px 22px 18px;
+  }
+  .guide-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
     color: var(--muted);
-    text-align: center;
-    max-width: 480px;
-    line-height: 1.45;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 10px;
+  }
+  .guide-list {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .guide-list li {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .guide-list li strong { font-weight: 700; }
+  body.alarm .guide, body.expired .guide {
+    color: #fff8f3 !important;
+    border-color: #fff8f3 !important;
+    background: transparent !important;
+  }
+  body.alarm .guide li, body.expired .guide li,
+  body.alarm .guide-title, body.expired .guide-title {
+    color: #fff8f3 !important;
+    border-color: #fff8f3 !important;
   }
 
   footer {
@@ -530,10 +607,17 @@
     padding-top: 32px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    letter-spacing: 0.14em;
     color: var(--muted);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    line-height: 1.5;
+    max-width: 640px;
   }
+  footer .foot-primary { text-transform: uppercase; letter-spacing: 0.2em; }
+  footer .foot-legal { font-size: 9px; opacity: 0.85; }
 
   .modal-backdrop {
     position: fixed;
@@ -568,7 +652,7 @@
   .modal-title {
     font-family: 'Fraunces', serif;
     font-weight: 800;
-    font-style: italic;
+    font-style: normal;
     font-size: 22px;
     letter-spacing: -0.01em;
   }
@@ -612,7 +696,7 @@
   }
   .name-row input {
     flex: 1;
-    font-family: 'Fraunces', serif;
+    font-family: 'Space Grotesk', -apple-system, 'Segoe UI', Roboto, sans-serif;
     font-size: 16px;
     padding: 8px 10px;
     background: transparent;
@@ -659,7 +743,7 @@
   }
   .color-chip.selected .swatch { border-color: var(--active-text); }
   .color-chip.clear {
-    font-style: italic;
+    font-style: normal;
     color: var(--muted);
   }
 
@@ -701,14 +785,17 @@
 
   @media (max-width: 480px) {
     header { flex-direction: column; gap: 6px; align-items: flex-start; }
-    .center-time { font-size: 19px; }
+    .center-time { font-size: 22px; }
     .slice-label { font-size: 13px; }
   }
 </style>
 </head>
 <body>
   <header>
-    <div class="brand">Board Game <span class="ampersand">Clock</span></div>
+    <div>
+      <div class="brand">Turn <span class="accent-word">Clock</span></div>
+      <div class="brand-tagline">(designed for Board Game enthusiasts)</div>
+    </div>
   </header>
 
   <div class="panel">
@@ -743,7 +830,7 @@
 
     <div class="game-layout">
       <div class="clock-wrap" id="clockWrap">
-        <svg class="clock" id="clock" viewBox="-120 -120 240 240" aria-label="Player turn clock"></svg>
+        <svg class="clock" id="clock" viewBox="-130 -130 260 260" aria-label="Player turn clock"></svg>
       </div>
 
       <aside class="totals" aria-label="Cumulative time per player">
@@ -762,7 +849,17 @@
       <button id="reset">Reset</button>
     </div>
 
-    <p class="hint">Tap a wedge when that player finishes early — the turn passes and the timer resets. The dial flashes red in the final ten seconds, then turns solid red and counts into negative once time is up.</p>
+    <div class="guide">
+      <div class="guide-title">How to use</div>
+      <ol class="guide-list">
+        <li><strong>Set Up</strong> — choose the number of players and minutes per turn, then press Set Up.</li>
+        <li><strong>Players</strong> — add names and pick a color for each player (colors are pre-assigned; change them anytime).</li>
+        <li><strong>Roll</strong> — spin the slot machine to randomly pick who goes first. Locks once the game starts.</li>
+        <li><strong>Start</strong> — begin the countdown. The screen pulses blue for 5 seconds at each new turn, flashes red in the last 10 seconds, and turns solid red counting negative when time runs out.</li>
+        <li><strong>Pass the turn</strong> — tap the active player's wedge (or Next Player) when they finish. Their time stops and the next player's countdown begins.</li>
+        <li><strong>Track time</strong> — the side table shows each player's cumulative time and share of the total. Reset wipes everything after confirmation.</li>
+      </ol>
+    </div>
   </div>
 
   <div class="modal-backdrop" id="modal" hidden>
@@ -795,7 +892,11 @@
     </div>
   </div>
 
-  <footer>Co-Creators: Justin Mahlberg, Cole Nellis and Rahul Sakhare.</footer>
+  <footer>
+    <div class="foot-primary">Co-Creators: Justin Mahlberg, Cole Nellis and Rahul Sakhare</div>
+    <div class="foot-legal">Turn Clock™ &copy; 2026 Justin Mahlberg, Cole Nellis &amp; Rahul Sakhare. All rights reserved.</div>
+    <div class="foot-legal">Provided "as is" without warranty of any kind, for personal, non-commercial use. Player names and times are processed locally in your browser — nothing is collected or transmitted.</div>
+  </footer>
 
 <script>
 (function() {
@@ -847,6 +948,7 @@
   let playerColors = []; // entries: color id string or '' (none)
   let playerTotals = []; // cumulative seconds per player
   let expired = false;
+  let turnChangedAt = 0; // performance.now() when the turn last changed (0 = never/cleared)
   let spinning = false; // true while the Pick Starter animation is running
   let gameStarted = false; // true once Start has been pressed; Reset clears it
 
@@ -942,9 +1044,9 @@
   function buildWheel() {
     svg.innerHTML = '';
     const R = 100;
-    const innerR = 38;
-    const explode = 8; // active slice offset outward
-    const activeBoost = 10; // active slice gets larger outer radius
+    const innerR = 46;
+    const explode = 10; // active slice offset outward
+    const activeBoost = 16; // active slice gets larger outer radius
     const n = numPlayers;
     const start = -Math.PI / 2;
     const step = (2 * Math.PI) / n;
@@ -1024,7 +1126,7 @@
 
     const timeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     timeText.setAttribute('x', 0);
-    timeText.setAttribute('y', -6);
+    timeText.setAttribute('y', -8);
     timeText.setAttribute('class', 'center-time');
     timeText.setAttribute('id', 'centerTime');
     timeText.textContent = fmt(remaining);
@@ -1032,7 +1134,7 @@
 
     const subText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     subText.setAttribute('x', 0);
-    subText.setAttribute('y', 14);
+    subText.setAttribute('y', 17);
     subText.setAttribute('class', 'center-sub');
     subText.setAttribute('id', 'centerSub');
     const subName = nameFor(activePlayer);
@@ -1044,6 +1146,7 @@
 
   function renderTotals() {
     totalsList.innerHTML = '';
+    const grand = playerTotals.reduce((a, b) => a + (b || 0), 0);
     for (let i = 0; i < numPlayers; i++) {
       const li = document.createElement('li');
       li.className = 'totals-row' + (i === activePlayer ? ' active' : '');
@@ -1052,22 +1155,48 @@
       name.textContent = nameFor(i);
       const leader = document.createElement('span');
       leader.className = 'totals-leader';
+      const pct = document.createElement('span');
+      pct.className = 'totals-pct';
+      pct.textContent = grand > 0.5 ? `${Math.round(((playerTotals[i] || 0) / grand) * 100)}%` : '–';
       const time = document.createElement('span');
       time.className = 'totals-time';
       time.textContent = fmtTotal(playerTotals[i] || 0);
       li.appendChild(name);
       li.appendChild(leader);
+      li.appendChild(pct);
       li.appendChild(time);
       totalsList.appendChild(li);
     }
+    // Grand total row
+    const totalLi = document.createElement('li');
+    totalLi.className = 'totals-row totals-grand';
+    const tName = document.createElement('span');
+    tName.className = 'totals-name';
+    tName.textContent = 'Total';
+    const tLeader = document.createElement('span');
+    tLeader.className = 'totals-leader';
+    const tTime = document.createElement('span');
+    tTime.className = 'totals-time';
+    tTime.id = 'grandTotal';
+    tTime.textContent = fmtTotal(grand);
+    totalLi.appendChild(tName);
+    totalLi.appendChild(tLeader);
+    totalLi.appendChild(tTime);
+    totalsList.appendChild(totalLi);
   }
 
   function updateTotalsTime() {
-    // Update only the time spans, cheap path called every tick
-    const rows = totalsList.querySelectorAll('.totals-row .totals-time');
-    rows.forEach((el, i) => {
-      el.textContent = fmtTotal(playerTotals[i] || 0);
+    // Update times, percentages, and the grand total — cheap path called every tick
+    const grand = playerTotals.reduce((a, b) => a + (b || 0), 0);
+    const rows = totalsList.querySelectorAll('.totals-row:not(.totals-grand)');
+    rows.forEach((row, i) => {
+      const timeEl = row.querySelector('.totals-time');
+      const pctEl = row.querySelector('.totals-pct');
+      if (timeEl) timeEl.textContent = fmtTotal(playerTotals[i] || 0);
+      if (pctEl) pctEl.textContent = grand > 0.5 ? `${Math.round(((playerTotals[i] || 0) / grand) * 100)}%` : '–';
     });
+    const grandEl = document.getElementById('grandTotal');
+    if (grandEl) grandEl.textContent = fmtTotal(grand);
   }
 
   function updateCenter() {
@@ -1078,33 +1207,48 @@
       const subName = nameFor(activePlayer);
       s.textContent = subName.length > 12 ? subName.slice(0, 11) + '…' : subName;
     }
-    // State machine:
-    //   remaining > 10: normal
-    //   10 >= remaining > 0 (running): alarm (flashing red)
-    //   remaining <= 0: expired (solid red, no flash, no auto-advance)
+    // State machine (priority order):
+    //   remaining <= 0: expired (solid red)
+    //   10 >= remaining (running): alarm (flashing red)
+    //   first 5s of a new turn (running): turnflash (blue pulse)
+    //   otherwise: normal
+    const inTurnFlash = running && turnChangedAt > 0 &&
+      (performance.now() - turnChangedAt) < 5000;
     if (remaining <= 0) {
       expired = true;
       body.classList.remove('alarm');
+      body.classList.remove('turnflash');
       body.classList.add('expired');
     } else if (remaining <= 10 && running) {
       body.classList.add('alarm');
       body.classList.remove('expired');
+      body.classList.remove('turnflash');
+    } else if (inTurnFlash) {
+      body.classList.add('turnflash');
+      body.classList.remove('alarm');
+      body.classList.remove('expired');
     } else {
       body.classList.remove('alarm');
       body.classList.remove('expired');
+      body.classList.remove('turnflash');
     }
     applyPageTheme();
   }
 
   function setActive(i) {
+    const prev = activePlayer;
     activePlayer = ((i % numPlayers) + numPlayers) % numPlayers;
     remaining = turnSeconds;
     expired = false;
+    // Blue heads-up only when the player actually changed (not on reset-to-same)
+    turnChangedAt = (activePlayer !== prev) ? performance.now() : 0;
     body.classList.remove('alarm');
     body.classList.remove('expired');
+    body.classList.remove('turnflash');
     buildWheel();
     applyPageTheme();
     syncReel();
+    updateCenter();
   }
 
   function onSliceTap(i) {
@@ -1159,6 +1303,7 @@
     startPauseBtn.textContent = 'Start';
     // Don't clear expired state — solid red persists until reset or advance
     if (!expired) body.classList.remove('alarm');
+    body.classList.remove('turnflash');
     applyPageTheme();
   }
 
@@ -1168,8 +1313,10 @@
     remaining = turnSeconds;
     expired = false;
     gameStarted = false;
+    turnChangedAt = 0;
     body.classList.remove('alarm');
     body.classList.remove('expired');
+    body.classList.remove('turnflash');
     for (let i = 0; i < playerTotals.length; i++) playerTotals[i] = 0;
     buildWheel();
     applyPageTheme();
